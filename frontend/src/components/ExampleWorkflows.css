@@ -1,0 +1,238 @@
+.example-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.example-modal {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.example-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #333;
+}
+
+.example-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #e0e0e0;
+}
+
+.close-button {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.example-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.example-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+.examples-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.example-card {
+  background: #2a2a2a;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.example-card:hover {
+  border-color: #60a5fa;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(96, 165, 250, 0.15);
+}
+
+.example-card.selected {
+  border-color: #60a5fa;
+  background: linear-gradient(135deg, #2a2a2a 0%, rgba(96, 165, 250, 0.1) 100%);
+}
+
+.example-card-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.example-card h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.2rem;
+  color: #e0e0e0;
+}
+
+.example-card p {
+  margin: 0 0 1rem 0;
+  color: #999;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.example-card-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.example-category,
+.example-agents {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.example-details {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #444;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.example-agents-list {
+  margin-bottom: 1rem;
+}
+
+.example-agents-list strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+}
+
+.example-agents-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.example-agents-list li {
+  padding: 0.3rem 0;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.example-agents-list li::before {
+  content: "→ ";
+  color: #60a5fa;
+  margin-right: 0.5rem;
+}
+
+.example-sample-input {
+  margin-bottom: 1.5rem;
+}
+
+.example-sample-input strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+}
+
+.sample-text {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  color: #4ade80;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin: 0;
+}
+
+.load-example-button {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.load-example-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
+}
