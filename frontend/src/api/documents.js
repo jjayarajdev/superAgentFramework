@@ -3,13 +3,13 @@ import client from './client';
 export const documentsAPI = {
   // Get all documents
   getAll: async () => {
-    const response = await client.get('/documents');
+    const response = await client.get('/api/v1/documents');
     return response.data;
   },
 
   // Get single document
   get: async (id) => {
-    const response = await client.get(`/documents/${id}`);
+    const response = await client.get(`/api/v1/documents/${id}`);
     return response.data;
   },
 
@@ -18,7 +18,7 @@ export const documentsAPI = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await client.post('/documents/upload', formData, {
+    const response = await client.post('/api/v1/documents/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -36,7 +36,7 @@ export const documentsAPI = {
 
   // Delete document
   delete: async (id) => {
-    const response = await client.delete(`/documents/${id}`);
+    const response = await client.delete(`/api/v1/documents/${id}`);
     return response.data;
   },
 };

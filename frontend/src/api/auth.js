@@ -6,7 +6,7 @@ export const authAPI = {
     formData.append('username', email);
     formData.append('password', password);
 
-    const response = await client.post('/auth/login', formData, {
+    const response = await client.post('/api/v1/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -15,12 +15,12 @@ export const authAPI = {
   },
 
   register: async (data) => {
-    const response = await client.post('/auth/register', data);
+    const response = await client.post('/api/v1/auth/register', data);
     return response.data;
   },
 
   getCurrentUser: async () => {
-    const response = await client.get('/auth/me');
+    const response = await client.get('/api/v1/auth/me');
     return response.data;
   },
 
