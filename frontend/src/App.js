@@ -1,52 +1,72 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import Home from './pages/Home';
-import WorkflowBuilder from './pages/WorkflowBuilder';
-import ExecutionDashboard from './pages/ExecutionDashboard';
-import DemoPage from './pages/DemoPage';
-import AgentBuilder from './pages/AgentBuilder';
-import './App.css';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { theme } from './theme/theme';
+import { AuthProvider } from './context/AuthContext';
+import Layout from './components/common/Layout';
+import PrivateRoute from './components/auth/PrivateRoute';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
+
+// Placeholder pages for routes (we'll build these next)
+const Workflows = () => <div>Workflows Page - Coming Soon</div>;
+const WorkflowBuilder = () => <div>Workflow Builder - Coming Soon</div>;
+const Templates = () => <div>Templates - Coming Soon</div>;
+const Executions = () => <div>Executions - Coming Soon</div>;
+const Analytics = () => <div>Analytics - Coming Soon</div>;
+const AgentManager = () => <div>Agent Manager - Coming Soon</div>;
+const AgentLibrary = () => <div>Agent Library - Coming Soon</div>;
+const KnowledgeBase = () => <div>Knowledge Base - Coming Soon</div>;
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <nav className="navbar">
-          <div className="navbar-brand">
-            <span className="navbar-logo">🤖</span>
-            <span className="navbar-title">Super Agent Framework</span>
-          </div>
-          <div className="navbar-links">
-            <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              🏠 Home
-            </NavLink>
-            <NavLink to="/builder" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              🎨 Workflow Builder
-            </NavLink>
-            <NavLink to="/execute" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              🚀 Execute
-            </NavLink>
-            <NavLink to="/demo" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              🎭 Demo
-            </NavLink>
-            <NavLink to="/agent-builder" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              🛠️ Agent Builder
-            </NavLink>
-            <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" className="nav-link external">
-              📚 API Docs
-            </a>
-          </div>
-        </nav>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<Login />} />
 
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/builder" element={<WorkflowBuilder />} />
-          <Route path="/execute" element={<ExecutionDashboard />} />
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/agent-builder" element={<AgentBuilder />} />
-        </Routes>
-      </div>
-    </Router>
+              {/* Protected Routes */}
+              <Route
+                element={
+                  <PrivateRoute>
+                    <Layout />
+                  </PrivateRoute>
+                }
+              >
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/workflows" element={<Workflows />} />
+                <Route path="/workflows/builder" element={<WorkflowBuilder />} />
+                <Route path="/workflows/:id/edit" element={<WorkflowBuilder />} />
+                <Route path="/templates" element={<Templates />} />
+                <Route path="/executions" element={<Executions />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/agents/manager" element={<AgentManager />} />
+                <Route path="/agents/library" element={<AgentLibrary />} />
+                <Route path="/knowledge-base" element={<KnowledgeBase />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
