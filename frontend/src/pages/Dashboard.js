@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -8,6 +9,7 @@ import {
   CardContent,
   Grid,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -18,6 +20,7 @@ import {
   Speed,
   ChevronRight,
 } from '@mui/icons-material';
+import { workflowsAPI, executionsAPI } from '../api';
 
 const StatCard = ({ title, value, subtitle, icon: Icon, color }) => (
   <Card sx={{ height: '100%' }}>
@@ -82,6 +85,45 @@ const FeatureCard = ({ title, description, icon: Icon, color }) => (
 const Dashboard = () => {
   const navigate = useNavigate();
 
+  // Fetch workflows and executions data
+  const { data: workflows, isLoading: workflowsLoading } = useQuery({
+    queryKey: ['workflows'],
+    queryFn: workflowsAPI.getAll,
+  });
+
+  const { data: executions, isLoading: executionsLoading } = useQuery({
+    queryKey: ['executions'],
+    queryFn: executionsAPI.getAll,
+  });
+
+  // Calculate stats from real data
+  const stats = React.useMemo(() => {
+    const workflowCount = workflows?.length || 0;
+    const executionList = executions || [];
+
+    const completed = executionList.filter((e) => e.status === 'COMPLETED').length;
+    const totalRuns = executionList.length;
+    const totalCost = executionList.reduce((sum, e) => sum + (e.metrics?.total_cost || 0), 0);
+
+    // Calculate average latency
+    const latencies = executionList
+      .filter((e) => e.metrics?.duration_seconds)
+      .map((e) => e.metrics.duration_seconds * 1000);
+    const avgLatency = latencies.length > 0
+      ? latencies.reduce((a, b) => a + b, 0) / latencies.length
+      : 0;
+
+    return {
+      workflowCount,
+      completed,
+      totalRuns,
+      totalCost,
+      avgLatency: Math.round(avgLatency),
+    };
+  }, [workflows, executions]);
+
+  const isLoading = workflowsLoading || executionsLoading;
+
   return (
     <Box>
       {/* Hero Section */}
@@ -137,45 +179,51 @@ const Dashboard = () => {
         </Box>
       </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 6 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Workflows"
-            value="2"
-            subtitle="+2 this week"
-            icon={AccountTree}
-            color="primary"
-          />
+      {/* Stats Cards - 2x2 Grid */}
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Grid container spacing={3} sx={{ mb: 6, maxWidth: 1000 }}>
+          <Grid item xs={12} sm={6}>
+            <StatCard
+              title="Total Workflows"
+              value={stats.workflowCount}
+              subtitle={`${stats.workflowCount} active`}
+              icon={AccountTree}
+              color="primary"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <StatCard
+              title="Completed"
+              value={stats.completed}
+              subtitle={`${stats.totalRuns} total runs`}
+              icon={CheckCircle}
+              color="success"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <StatCard
+              title="Total Cost"
+              value={`$${stats.totalCost.toFixed(2)}`}
+              subtitle="All executions"
+              icon={AttachMoney}
+              color="warning"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <StatCard
+              title="Avg. Latency"
+              value={`${stats.avgLatency}ms`}
+              subtitle={`${stats.totalRuns} executions`}
+              icon={Speed}
+              color="info"
+            />
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Completed"
-            value="0"
-            subtitle="1 total runs"
-            icon={CheckCircle}
-            color="success"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Cost"
-            value="$0.00"
-            subtitle="+$0.00 / month"
-            icon={AttachMoney}
-            color="warning"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Avg. Latency"
-            value="0ms"
-            subtitle="+0% vs last week"
-            icon={Speed}
-            color="info"
-          />
-        </Grid>
-      </Grid>
+      )}
 
       {/* Platform Features */}
       <Box sx={{ mb: 6 }}>
@@ -232,26 +280,58 @@ const Dashboard = () => {
             View All
           </Button>
         </Box>
-        <Card>
-          <CardContent>
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <AccountTree sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No workflows yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Create your first workflow to automate complex tasks
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/workflows/builder')}
-              >
-                Create Workflow
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
+        {workflows && workflows.length > 0 ? (
+          <Grid container spacing={3}>
+            {workflows.slice(0, 3).map((workflow) => (
+              <Grid item xs={12} md={4} key={workflow.id}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+                  }}
+                  onClick={() => navigate(`/workflows/builder/${workflow.id}`)}
+                >
+                  <CardContent>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      {workflow.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {workflow.description || 'No description'}
+                    </Typography>
+                    <Chip
+                      label={`${workflow.agents?.length || 0} agents`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Card>
+            <CardContent>
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <AccountTree sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No workflows yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Create your first workflow to automate complex tasks
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/workflows/builder')}
+                >
+                  Create Workflow
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
       </Box>
 
       {/* Recent Executions */}
@@ -268,19 +348,65 @@ const Dashboard = () => {
             View All
           </Button>
         </Box>
-        <Card>
-          <CardContent>
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <PlayIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No executions yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Workflow execution history will appear here
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
+        {executions && executions.length > 0 ? (
+          <Card>
+            <CardContent>
+              {executions.slice(0, 5).map((execution) => {
+                const statusColors = {
+                  COMPLETED: 'success',
+                  RUNNING: 'info',
+                  FAILED: 'error',
+                  PENDING: 'warning',
+                };
+                return (
+                  <Box
+                    key={execution.id}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      py: 2,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      '&:last-child': { borderBottom: 0 },
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>
+                        {execution.workflow_name || `Workflow ${execution.workflow_id}`}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {execution.created_at
+                          ? new Date(execution.created_at).toLocaleString()
+                          : 'Unknown date'}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={execution.status}
+                      size="small"
+                      color={statusColors[execution.status] || 'default'}
+                      variant="outlined"
+                    />
+                  </Box>
+                );
+              })}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent>
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <PlayIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No executions yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Workflow execution history will appear here
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
       </Box>
     </Box>
   );

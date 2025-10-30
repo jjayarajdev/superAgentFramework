@@ -1,34 +1,49 @@
-import client from './client';
-
 export const analyticsAPI = {
   // Get dashboard summary
   getSummary: async () => {
-    const response = await client.get('/api/v1/analytics/summary');
-    return response.data;
+    // Backend analytics not implemented yet, return empty
+    return {};
   },
 
   // Get cost over time
   getCostOverTime: async (period = '30d') => {
-    const response = await client.get('/api/v1/analytics/cost', { params: { period } });
-    return response.data;
+    // Backend analytics not implemented yet, return empty
+    // This allows the page to use mock data
+    return [];
   },
 
   // Get token distribution
   getTokenDistribution: async () => {
-    const response = await client.get('/api/v1/analytics/tokens');
-    return response.data;
+    // Backend analytics not implemented yet, return empty
+    // This allows the page to use mock data
+    return [];
   },
 
   // Get success rate
   getSuccessRate: async (period = '30d') => {
-    const response = await client.get('/api/v1/analytics/success-rate', { params: { period } });
-    return response.data;
+    // Backend analytics not implemented yet, return empty
+    return {};
   },
 
   // Get workflow performance
   getWorkflowPerformance: async () => {
-    const response = await client.get('/api/v1/analytics/performance');
-    return response.data;
+    // Backend analytics not implemented yet, return empty
+    // This allows the page to use mock data
+    return [];
+  },
+
+  // Get metrics (fallback to empty for now - backend not implemented)
+  getMetrics: async () => {
+    // Backend analytics not implemented yet, return empty
+    // This allows the page to use mock data
+    return {};
+  },
+
+  // Get execution trends (fallback to empty for now - backend not implemented)
+  getExecutionTrends: async (period = '30d') => {
+    // Backend analytics not implemented yet, return empty
+    // This allows the page to use mock data
+    return [];
   },
 };
 

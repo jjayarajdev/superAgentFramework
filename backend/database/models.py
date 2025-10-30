@@ -297,6 +297,45 @@ class WorkflowVersion(Base):
 
 
 # ============================================================================
+# AGENT CONFIGURATIONS
+# ============================================================================
+
+class AgentConfiguration(Base):
+    """
+    Agent configuration storage for system agents.
+    Allows users to configure API keys, base URLs, and other settings
+    for pre-built agents without modifying code.
+    """
+    __tablename__ = "agent_configurations"
+
+    id = Column(String, primary_key=True, default=lambda: f"agconf_{uuid.uuid4().hex[:16]}")
+    org_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_id = Column(String, ForeignKey("teams.id", ondelete="CASCADE"), index=True)
+
+    # Agent identification
+    agent_type = Column(String, nullable=False, index=True)  # e.g., "darwinbox_hr", "salesforce"
+    agent_name = Column(String, nullable=False)  # Display name
+
+    # Configuration data (JSON)
+    # Example: {"admin_email": "admin@company.com", "secret_key": "xxx", "base_url": "https://api..."}
+    config_data = Column(JSON, default=dict, nullable=False)
+
+    # Metadata
+    is_active = Column(Boolean, default=True)
+    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    organization = relationship("Organization")
+    team = relationship("Team")
+    user = relationship("User")
+
+    def __repr__(self):
+        return f"<AgentConfiguration {self.agent_type} for org {self.org_id}>"
+
+
+# ============================================================================
 # SCHEDULED EXECUTIONS
 # ============================================================================
 

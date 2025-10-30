@@ -98,14 +98,19 @@ if [ ! -f ".env" ]; then
     fi
 fi
 
+# Create required directories if they don't exist
+mkdir -p storage/logs
+mkdir -p "$SCRIPT_DIR/storage/logs"
+mkdir -p "$SCRIPT_DIR/.runtime"
+
 # Kill any process on port 8000
 kill_port 8000
 
 # Start backend server in background
 echo -e "${GREEN}🚀 Starting Backend Server (port 8000)...${NC}"
-nohup uvicorn main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+nohup uvicorn main:app --host 0.0.0.0 --port 8000 --reload > storage/logs/backend.log 2>&1 &
 BACKEND_PID=$!
-echo $BACKEND_PID > backend.pid
+echo $BACKEND_PID > "$SCRIPT_DIR/.runtime/backend.pid"
 
 # Wait for backend to start
 echo -e "${YELLOW}⏳ Waiting for backend to start...${NC}"
@@ -115,8 +120,8 @@ sleep 3
 if curl -s http://localhost:8000/health > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Backend is running (PID: $BACKEND_PID)${NC}"
 else
-    echo -e "${RED}❌ Backend failed to start. Check backend.log for details${NC}"
-    cat backend.log | tail -20
+    echo -e "${RED}❌ Backend failed to start. Check storage/logs/backend.log for details${NC}"
+    cat storage/logs/backend.log | tail -20
     exit 1
 fi
 
@@ -241,12 +246,35 @@ kill_port 3000
 # Start frontend server in background
 echo -e "${GREEN}🚀 Starting Frontend Server (port 3000)...${NC}"
 cd "$FRONTEND_DIR"
-BROWSER=none PORT=3000 nohup npm start > ../frontend.log 2>&1 &
+# Increase Node memory limit to prevent crashes (4GB)
+export NODE_OPTIONS="--max-old-space-size=4096"
+BROWSER=none PORT=3000 nohup npm start > "$SCRIPT_DIR/storage/logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
-echo $FRONTEND_PID > ../frontend.pid
+echo $FRONTEND_PID > "$SCRIPT_DIR/.runtime/frontend.pid"
 
 echo -e "${YELLOW}⏳ Waiting for frontend to start (this may take 10-30 seconds)...${NC}"
-sleep 10
+
+# Wait up to 60 seconds for frontend to be ready
+FRONTEND_READY=false
+for i in {1..60}; do
+    if curl -s http://localhost:3000 > /dev/null 2>&1; then
+        FRONTEND_READY=true
+        break
+    fi
+    sleep 1
+    if [ $((i % 5)) -eq 0 ]; then
+        echo -e "${YELLOW}  Still waiting... ($i seconds)${NC}"
+    fi
+done
+
+if [ "$FRONTEND_READY" = true ]; then
+    echo -e "${GREEN}✅ Frontend is running (PID: $FRONTEND_PID)${NC}"
+else
+    echo -e "${RED}❌ Frontend failed to start. Check $SCRIPT_DIR/storage/logs/frontend.log for details${NC}"
+    tail -20 "$SCRIPT_DIR/storage/logs/frontend.log"
+    echo -e "${YELLOW}⚠️  Backend is still running at http://localhost:8000${NC}"
+    echo -e "${YELLOW}⚠️  You can manually start frontend with: cd frontend && npm start${NC}"
+fi
 
 # ============================================================
 # FINAL STATUS
@@ -274,8 +302,8 @@ echo -e "  💻 Developer:  ${YELLOW}dev@acme.com${NC} / ${YELLOW}dev123${NC}"
 echo -e "  ⚙️  Operator:   ${YELLOW}ops@acme.com${NC} / ${YELLOW}ops123${NC}"
 echo ""
 echo -e "${BLUE}📝 Logs:${NC}"
-echo -e "  Backend:  ${YELLOW}tail -f $BACKEND_DIR/backend.log${NC}"
-echo -e "  Frontend: ${YELLOW}tail -f $SCRIPT_DIR/frontend.log${NC}"
+echo -e "  Backend:  ${YELLOW}tail -f $BACKEND_DIR/storage/logs/backend.log${NC}"
+echo -e "  Frontend: ${YELLOW}tail -f $SCRIPT_DIR/storage/logs/frontend.log${NC}"
 echo ""
 echo -e "${BLUE}🛑 To stop all services:${NC}"
 echo -e "  ${YELLOW}./stop.sh${NC}"
@@ -298,6 +326,6 @@ echo ""
 
 # Tail both logs
 trap 'echo ""; echo "Use ./stop.sh to stop all services"; exit 0' INT
-tail -f "$BACKEND_DIR/backend.log" &
-tail -f "$SCRIPT_DIR/frontend.log" &
+tail -f "$BACKEND_DIR/storage/logs/backend.log" &
+tail -f "$SCRIPT_DIR/storage/logs/frontend.log" &
 wait

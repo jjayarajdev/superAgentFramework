@@ -32,6 +32,14 @@ client.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+
+    // Add more context to errors for debugging
+    if (error.config) {
+      const method = error.config.method?.toUpperCase();
+      const url = error.config.url;
+      console.error(`API Error [${method} ${url}]:`, error.response?.status, error.response?.data);
+    }
+
     return Promise.reject(error);
   }
 );

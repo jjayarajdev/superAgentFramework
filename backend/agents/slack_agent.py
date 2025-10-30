@@ -3,13 +3,12 @@ Slack Agent - Send messages and notifications to Slack channels.
 """
 from typing import Dict, Any, Optional, List
 from pydantic import Field
-import uuid
-from datetime import datetime
 
 from agents.base import (
     BaseAgent, AgentConfigSchema, AgentExecutionResult,
     AgentCategory, register_agent
 )
+from data import mock_data
 
 
 class SlackAgentConfig(AgentConfigSchema):
@@ -40,10 +39,6 @@ class SlackAgentConfig(AgentConfigSchema):
     )
 
 
-# In-memory storage for sent Slack messages
-_sent_slack_messages = []
-
-
 @register_agent
 class SlackAgent(BaseAgent):
     """
@@ -62,32 +57,36 @@ class SlackAgent(BaseAgent):
     config_schema = SlackAgentConfig
 
     async def execute(self, input_data: Any, context: Dict[str, Any]) -> AgentExecutionResult:
-        """Execute Slack message send."""
-        self.log(f"Sending message to Slack channel {self.config.channel}...")
+        """
+        Execute Slack message send.
+
+        Supports dual-mode execution:
+        - Mock mode (default): Uses centralized mock data store
+        - Real mode: Connects to actual Slack API (requires credentials)
+        """
+        use_mock = input_data.get('use_mock', True) if isinstance(input_data, dict) else True
+
+        self.log(f"Sending message to Slack channel {self.config.channel}... (mode: {'mock' if use_mock else 'real'})")
 
         # Generate message based on input data and template
         message = self._generate_message(input_data)
 
-        # Mock sending to Slack
-        slack_message = {
-            "message_id": f"slack_{str(uuid.uuid4())[:8]}",
-            "channel": self.config.channel,
-            "text": message,
-            "timestamp": datetime.now().isoformat(),
-            "status": "sent"
-        }
-
-        # Store in mock storage
-        _sent_slack_messages.append(slack_message)
-
-        self.log(f"Message sent successfully to {self.config.channel}")
+        if use_mock:
+            # Use centralized mock data store
+            result = mock_data.send_slack_message(self.config.channel, message)
+            self.log(f"Message sent successfully to {self.config.channel} (mock)")
+        else:
+            # Real Slack API (requires credentials)
+            # TODO: Implement real Slack integration
+            raise NotImplementedError("Real Slack API integration not yet implemented")
 
         return AgentExecutionResult(
             success=True,
             output={
-                "message": slack_message,
+                "message": result,
                 "channel": self.config.channel,
-                "sent_at": slack_message["timestamp"]
+                "sent_at": result.get("ts", result.get("timestamp", "unknown")),
+                "data_source": "mock" if use_mock else "real"
             },
             tokens_used=200,  # If using LLM for message generation
             cost=0.008
@@ -107,14 +106,3 @@ class SlackAgent(BaseAgent):
 
         # Default message
         return f"📢 **Notification:** {input_data}"
-
-
-def get_sent_slack_messages() -> List[Dict[str, Any]]:
-    """Get all sent Slack messages (for demo/testing)."""
-    return _sent_slack_messages
-
-
-def clear_slack_messages():
-    """Clear sent messages (for demo reset)."""
-    global _sent_slack_messages
-    _sent_slack_messages = []

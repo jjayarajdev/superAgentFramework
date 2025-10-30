@@ -49,13 +49,21 @@ class OrchestrationEngine:
         """
         self.log(execution_id, "INFO", "workflow", f"Starting workflow execution: {workflow.name}")
 
+        # Convert input_data to JSON string if it's a dict
+        input_str = input_data
+        if isinstance(input_data, dict):
+            import json
+            input_str = json.dumps(input_data)
+        elif not isinstance(input_data, str):
+            input_str = str(input_data)
+
         # Initialize execution
         execution = Execution(
             id=execution_id,
             workflow_id=workflow.id,
             status=ExecutionStatus.RUNNING,
             started_at=datetime.now(),
-            input=input_data,
+            input=input_str,
             agent_executions=[]
         )
 

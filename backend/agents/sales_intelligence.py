@@ -8,17 +8,17 @@ from agents.base import (
     BaseAgent, AgentConfigSchema, AgentExecutionResult,
     AgentCategory, register_agent
 )
-from data import mock_sfdc
+from data import mock_data
 
 
 class SalesIntelligenceConfig(AgentConfigSchema):
     """Configuration schema for Sales Intelligence Agent."""
 
-    connector: str = Field(
+    connector: Optional[str] = Field(
         default="sfdc",
         description="Connector to use (sfdc)"
     )
-    object_type: str = Field(
+    object_type: Optional[str] = Field(
         default="Opportunity",
         description="SFDC object type to query",
         json_schema_extra={"enum": ["Opportunity", "Account", "Contact"]}
@@ -57,32 +57,45 @@ class SalesIntelligenceAgent(BaseAgent):
     config_schema = SalesIntelligenceConfig
 
     async def execute(self, input_data: Any, context: Dict[str, Any]) -> AgentExecutionResult:
-        """Execute SFDC query."""
-        self.log(f"Querying SFDC for opportunities...")
+        """
+        Execute SFDC query.
+
+        Supports dual-mode execution:
+        - Mock mode (default): Uses realistic mock data from centralized store
+        - Real mode: Connects to actual Salesforce API (requires credentials)
+        """
+        use_mock = input_data.get('use_mock', True) if isinstance(input_data, dict) else True
+
+        self.log(f"Querying SFDC for opportunities... (mode: {'mock' if use_mock else 'real'})")
 
         # Build filters from config
         filters = {}
 
         if self.config.amount_threshold:
-            filters["Amount"] = f"> {self.config.amount_threshold}"
+            filters["amount_min"] = self.config.amount_threshold
 
         if self.config.close_date_filter and self.config.close_date_filter != "All":
-            filters["CloseDate"] = f">= {self.config.close_date_filter}"
+            filters["close_date_quarter"] = self.config.close_date_filter
 
         if self.config.stage_filter:
-            filters["StageName"] = self.config.stage_filter
+            filters["stage"] = self.config.stage_filter
 
-        # Query mock SFDC connector
-        opportunities = mock_sfdc.get_opportunities(filters)
-
-        self.log(f"Found {len(opportunities)} opportunities matching criteria")
+        if use_mock:
+            # Use centralized mock data store
+            opportunities = mock_data.get_salesforce_opportunities(filters)
+            self.log(f"Found {len(opportunities)} opportunities (mock data)")
+        else:
+            # Real Salesforce API (requires credentials)
+            # TODO: Implement real Salesforce integration
+            raise NotImplementedError("Real Salesforce API integration not yet implemented")
 
         # Return structured output
         return AgentExecutionResult(
             success=True,
             output={
                 "deals": opportunities,
-                "count": len(opportunities)
+                "count": len(opportunities),
+                "data_source": "mock" if use_mock else "real"
             },
             tokens_used=500,  # Mock token count
             cost=0.02  # Mock cost

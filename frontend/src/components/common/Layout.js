@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 220;
 
 const Layout = () => {
   return (
@@ -13,9 +13,7 @@ const Layout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 4,
-          width: `calc(100% - ${DRAWER_WIDTH}px)`,
-          ml: `${DRAWER_WIDTH}px`,
+          p: 2, // Small padding for content
           minHeight: '100vh',
         }}
       >

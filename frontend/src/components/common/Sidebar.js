@@ -21,20 +21,46 @@ import {
   SmartToy as AgentManagerIcon,
   LocalLibrary as AgentLibraryIcon,
   Description as KnowledgeBaseIcon,
+  Chat as ChatIcon,
+  AutoAwesome as VisualIcon,
+  Build as BuildIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 220;
 
-const navItems = [
-  { text: 'Home', icon: <HomeIcon />, path: '/dashboard' },
-  { text: 'Workflows', icon: <WorkflowsIcon />, path: '/workflows' },
-  { text: 'Templates', icon: <TemplatesIcon />, path: '/templates' },
-  { text: 'Executions', icon: <ExecutionsIcon />, path: '/executions' },
-  { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
-  { text: 'Agent Manager', icon: <AgentManagerIcon />, path: '/agents/manager' },
-  { text: 'Agent Library', icon: <AgentLibraryIcon />, path: '/agents/library' },
-  { text: 'Knowledge Base', icon: <KnowledgeBaseIcon />, path: '/knowledge-base' },
+const navSections = [
+  {
+    title: 'Workspace',
+    items: [
+      { text: 'Home', icon: <HomeIcon />, path: '/dashboard' },
+      { text: 'AI Chat', icon: <ChatIcon />, path: '/chat' },
+      { text: 'Workflows', icon: <WorkflowsIcon />, path: '/workflows' },
+      { text: 'Templates', icon: <TemplatesIcon />, path: '/templates' },
+    ],
+  },
+  {
+    title: 'Visual Studio',
+    items: [
+      { text: 'Workflow Builder', icon: <VisualIcon />, path: '/workflows/visual-builder' },
+      { text: 'Agent Builder', icon: <BuildIcon />, path: '/agents/builder' },
+    ],
+  },
+  {
+    title: 'Monitoring',
+    items: [
+      { text: 'Executions', icon: <ExecutionsIcon />, path: '/executions' },
+      { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
+    ],
+  },
+  {
+    title: 'Agents & Knowledge',
+    items: [
+      { text: 'Agent Library', icon: <AgentLibraryIcon />, path: '/agents/library' },
+      { text: 'Agent Manager', icon: <AgentManagerIcon />, path: '/agents/manager' },
+      { text: 'Knowledge Base', icon: <KnowledgeBaseIcon />, path: '/knowledge-base' },
+    ],
+  },
 ];
 
 const Sidebar = () => {
@@ -91,51 +117,55 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <Box sx={{ flexGrow: 1, overflow: 'auto', py: 2 }}>
-        <Typography
-          variant="overline"
-          sx={{ px: 3, color: 'text.secondary', fontSize: '0.7rem' }}
-        >
-          Navigation
-        </Typography>
-        <List sx={{ px: 2 }}>
-          {navItems.map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                onClick={() => navigate(item.path)}
-                selected={isActive(item.path)}
-                sx={{
-                  borderRadius: 2,
-                  '&.Mui-selected': {
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: 'primary.dark',
-                    },
-                    '& .MuiListItemIcon-root': {
-                      color: 'white',
-                    },
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 40,
-                    color: isActive(item.path) ? 'white' : 'text.secondary',
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontSize: '0.875rem',
-                    fontWeight: isActive(item.path) ? 600 : 500,
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
+        {navSections.map((section, sectionIndex) => (
+          <Box key={section.title} sx={{ mb: sectionIndex < navSections.length - 1 ? 3 : 0 }}>
+            <Typography
+              variant="overline"
+              sx={{ px: 3, color: 'text.secondary', fontSize: '0.7rem', display: 'block', mb: 1 }}
+            >
+              {section.title}
+            </Typography>
+            <List sx={{ px: 2 }}>
+              {section.items.map((item) => (
+                <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+                  <ListItemButton
+                    onClick={() => navigate(item.path)}
+                    selected={isActive(item.path)}
+                    sx={{
+                      borderRadius: 2,
+                      '&.Mui-selected': {
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        '&:hover': {
+                          backgroundColor: 'primary.dark',
+                        },
+                        '& .MuiListItemIcon-root': {
+                          color: 'white',
+                        },
+                      },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: isActive(item.path) ? 'white' : 'text.secondary',
+                      }}
+                    >
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.text}
+                      primaryTypographyProps={{
+                        fontSize: '0.875rem',
+                        fontWeight: isActive(item.path) ? 600 : 500,
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        ))}
       </Box>
 
       <Divider />

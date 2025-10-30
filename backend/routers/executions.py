@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from typing import List
 import uuid
+import json
 from datetime import datetime
 
 from models.execution import (
@@ -39,11 +40,19 @@ def execution_db_to_model(db_execution: ExecutionDB) -> Execution:
     else:
         status = ExecutionStatus(db_execution.status)
 
+    # Calculate latency in milliseconds
+    total_latency_ms = 0
+    if db_execution.duration_seconds:
+        total_latency_ms = int(db_execution.duration_seconds * 1000)
+
+    # Keep input_data as string (don't parse JSON)
+    input_data = db_execution.input_data or ""
+
     return Execution(
         id=db_execution.id,
         workflow_id=db_execution.workflow_id,
         status=status,
-        input=db_execution.input_data,
+        input=input_data,
         output=db_execution.output if db_execution.output else {},
         error=db_execution.error,
         created_at=db_execution.created_at,
@@ -51,9 +60,11 @@ def execution_db_to_model(db_execution: ExecutionDB) -> Execution:
         completed_at=db_execution.completed_at,
         agent_executions=[],  # TODO: Add agent execution tracking
         metrics={
-            "total_tokens": db_execution.tokens_used,
-            "total_cost": db_execution.cost,
-            "duration_seconds": db_execution.duration_seconds
+            "total_tokens": db_execution.tokens_used or 0,
+            "total_cost": db_execution.cost or 0.0,
+            "duration_seconds": db_execution.duration_seconds or 0.0,
+            "total_latency_ms": total_latency_ms,
+            "agents": []  # TODO: Add per-agent metrics
         }
     )
 
@@ -100,12 +111,19 @@ async def create_execution(
     execution_id = f"exec_{str(uuid.uuid4())[:8]}"
     started_at = datetime.utcnow()
 
+    # Convert input_data to JSON string if it's a dict
+    input_data_str = execution.input
+    if isinstance(execution.input, dict):
+        input_data_str = json.dumps(execution.input)
+    elif not isinstance(execution.input, str):
+        input_data_str = str(execution.input)
+
     db_execution = ExecutionDB(
         id=execution_id,
         workflow_id=execution.workflow_id,
         org_id=current_user.org_id,
         status=WorkflowStatus.RUNNING,
-        input_data=execution.input,
+        input_data=input_data_str,
         created_at=started_at,
         started_at=started_at
     )
@@ -136,9 +154,9 @@ async def create_execution(
         # Update execution with results
         db_execution.status = WorkflowStatus.COMPLETED
         db_execution.output = result.output if hasattr(result, 'output') else {}
-        db_execution.agent_results = result.metrics.get('agent_results', {}) if hasattr(result, 'metrics') else {}
-        db_execution.tokens_used = result.metrics.get('total_tokens', 0) if hasattr(result, 'metrics') else 0
-        db_execution.cost = result.metrics.get('total_cost', 0.0) if hasattr(result, 'metrics') else 0.0
+        db_execution.agent_results = result.metrics.agent_results if hasattr(result, 'metrics') and hasattr(result.metrics, 'agent_results') else {}
+        db_execution.tokens_used = result.metrics.total_tokens if hasattr(result, 'metrics') and hasattr(result.metrics, 'total_tokens') else 0
+        db_execution.cost = result.metrics.total_cost if hasattr(result, 'metrics') and hasattr(result.metrics, 'total_cost') else 0.0
         db_execution.completed_at = datetime.utcnow()
         db_execution.duration_seconds = (db_execution.completed_at - db_execution.started_at).total_seconds()
 

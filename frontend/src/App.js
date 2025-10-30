@@ -9,6 +9,17 @@ import Layout from './components/common/Layout';
 import PrivateRoute from './components/auth/PrivateRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Chat from './pages/Chat';
+import Templates from './pages/Templates';
+import Executions from './pages/Executions';
+import AgentLibrary from './pages/AgentLibrary';
+import KnowledgeBase from './pages/KnowledgeBase';
+import AgentManager from './pages/AgentManager';
+import Analytics from './pages/Analytics';
+import Workflows from './pages/Workflows';
+import WorkflowBuilder from './pages/WorkflowBuilder';
+import VisualWorkflowBuilder from './pages/VisualWorkflowBuilder';
+import AgentEditor from './pages/AgentEditor';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -20,16 +31,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// Placeholder pages for routes (we'll build these next)
-const Workflows = () => <div>Workflows Page - Coming Soon</div>;
-const WorkflowBuilder = () => <div>Workflow Builder - Coming Soon</div>;
-const Templates = () => <div>Templates - Coming Soon</div>;
-const Executions = () => <div>Executions - Coming Soon</div>;
-const Analytics = () => <div>Analytics - Coming Soon</div>;
-const AgentManager = () => <div>Agent Manager - Coming Soon</div>;
-const AgentLibrary = () => <div>Agent Library - Coming Soon</div>;
-const KnowledgeBase = () => <div>Knowledge Base - Coming Soon</div>;
 
 function App() {
   return (
@@ -52,14 +53,18 @@ function App() {
               >
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/chat" element={<Chat />} />
                 <Route path="/workflows" element={<Workflows />} />
                 <Route path="/workflows/builder" element={<WorkflowBuilder />} />
                 <Route path="/workflows/:id/edit" element={<WorkflowBuilder />} />
+                <Route path="/workflows/visual-builder" element={<VisualWorkflowBuilder />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/executions" element={<Executions />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/agents/manager" element={<AgentManager />} />
                 <Route path="/agents/library" element={<AgentLibrary />} />
+                <Route path="/agents/builder" element={<AgentEditor />} />
+                <Route path="/agents/:id/edit" element={<AgentEditor />} />
                 <Route path="/knowledge-base" element={<KnowledgeBase />} />
               </Route>
             </Routes>

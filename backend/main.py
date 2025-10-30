@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 import sys
 
 from config import settings
-from routers import workflows, executions, connectors, documents, agents, examples, agent_generator, auth
+from routers import workflows, executions, connectors, documents, agents, examples, agent_generator, auth, chat
 from auth.middleware import TenantMiddleware
 
 # Conditionally import based on feature flags
@@ -126,6 +126,9 @@ if settings.ENABLE_MULTI_TENANCY:
 
 # Authentication (login, register, profile)
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+
+# Conversational AI
+app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
 
 # Core resources
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["Workflows"])

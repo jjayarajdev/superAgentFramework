@@ -3,7 +3,7 @@ import client from './client';
 export const workflowsAPI = {
   // Get all workflows
   getAll: async () => {
-    const response = await client.get('/api/v1/workflows');
+    const response = await client.get('/api/v1/workflows/');
     return response.data;
   },
 
@@ -15,7 +15,7 @@ export const workflowsAPI = {
 
   // Create workflow
   create: async (data) => {
-    const response = await client.post('/api/v1/workflows', data);
+    const response = await client.post('/api/v1/workflows/', data);
     return response.data;
   },
 
@@ -32,14 +32,18 @@ export const workflowsAPI = {
   },
 
   // Execute workflow
-  execute: async (id, input) => {
-    const response = await client.post(`/api/v1/workflows/${id}/execute`, { input });
+  execute: async ({ id, input = {} }) => {
+    const response = await client.post('/api/v1/executions/', {
+      workflow_id: id,
+      input: typeof input === 'string' ? input : JSON.stringify(input),
+      params: {},
+    });
     return response.data;
   },
 
   // Get workflow templates
   getTemplates: async () => {
-    const response = await client.get('/api/v1/examples');
+    const response = await client.get('/api/v1/examples/');
     return response.data;
   },
 

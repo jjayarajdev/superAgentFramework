@@ -9,7 +9,7 @@ from agents.base import (
     BaseAgent, AgentConfigSchema, AgentExecutionResult,
     AgentCategory, register_agent
 )
-from data import mock_outlook
+from data import mock_data
 from rag.service import get_rag_service
 
 
@@ -63,8 +63,16 @@ class EmailOutreachAgent(BaseAgent):
     config_schema = EmailOutreachConfig
 
     async def execute(self, input_data: Any, context: Dict[str, Any]) -> AgentExecutionResult:
-        """Execute email outreach."""
-        self.log(f"Starting email outreach with template: {self.config.email_template}")
+        """
+        Execute email outreach.
+
+        Supports dual-mode execution:
+        - Mock mode (default): Uses centralized mock data store
+        - Real mode: Connects to actual Email API (requires credentials)
+        """
+        use_mock = input_data.get('use_mock', True) if isinstance(input_data, dict) else True
+
+        self.log(f"Starting email outreach with template: {self.config.email_template} (mode: {'mock' if use_mock else 'real'})")
 
         # Extract recipients from input (deals, records, contacts, employees, etc.)
         recipients = []
@@ -106,20 +114,25 @@ class EmailOutreachAgent(BaseAgent):
             # Determine recipient email address (different field names for different sources)
             recipient_email = recipient.get("OwnerEmail") or recipient.get("email") or recipient.get("Email") or "contact@example.com"
 
-            # Send via mock Outlook
-            result = mock_outlook.send_email(
-                recipient=recipient_email,
-                subject=email_content["subject"],
-                body=email_content["body"]
-            )
+            if use_mock:
+                # Use centralized mock data store
+                result = mock_data.send_email(
+                    to=recipient_email,
+                    subject=email_content["subject"],
+                    body=email_content["body"]
+                )
+            else:
+                # Real Email API (requires credentials)
+                # TODO: Implement real Email integration
+                raise NotImplementedError("Real Email API integration not yet implemented")
 
             sent_emails.append({
                 "recipient_id": recipient.get("Id") or recipient.get("id"),
                 "recipient_name": recipient.get("Name") or recipient.get("firstname", "") + " " + recipient.get("lastname", "") or recipient.get("name"),
-                "recipient_email": result["recipient"],
+                "recipient_email": result["to"],
                 "subject": result["subject"],
                 "body": result["body"],
-                "sent_at": result["timestamp"],
+                "sent_at": result["sent_at"],
                 "message_id": result["message_id"]
             })
 
@@ -168,7 +181,8 @@ class EmailOutreachAgent(BaseAgent):
             success=True,
             output={
                 "emails_sent": len(sent_emails),
-                "emails": sent_emails
+                "emails": sent_emails,
+                "data_source": "mock" if use_mock else "real"
             },
             sources=sources,
             tokens_used=total_tokens,
@@ -207,15 +221,24 @@ class EmailOutreachAgent(BaseAgent):
         else:
             rag_context = "I wanted to see how things are progressing."
 
-        # Generate from template
-        email_data = mock_outlook.generate_email_from_template(
-            template_name=self.config.email_template,
+        # Generate email from template
+        templates = mock_data.get_email_templates()
+        template = next((t for t in templates if t["name"] == self.config.email_template), templates[0])
+
+        # Simple template substitution
+        subject = template["subject"].format(account_name=account_name)
+        body = template["body"].format(
             owner_name=owner_name,
             account_name=account_name,
             deal_value=deal_value,
             close_date=close_date,
             context=rag_context
         )
+
+        email_data = {
+            "subject": subject,
+            "body": body
+        }
 
         # Option: Use real LLM for generation (commented out for mock demo)
         # from openai import OpenAI

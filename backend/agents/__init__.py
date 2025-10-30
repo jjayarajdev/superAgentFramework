@@ -20,6 +20,9 @@ from agents.email_outreach import EmailOutreachAgent
 from agents.stripe_agent import StripePaymentAgentAgent
 from agents.darwinbox_agent import DarwinBoxAgent
 
+# Darwinbox Domain Agents
+from agents.darwinbox_hr_agent import DarwinboxHRAgent
+
 # Add new agents here - they'll auto-register on import
 
 # Export commonly used classes
