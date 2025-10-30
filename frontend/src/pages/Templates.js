@@ -238,7 +238,8 @@ const Templates = () => {
 
   // Combine backend templates with built-in templates
   const allTemplates = React.useMemo(() => {
-    const backend = backendTemplates || [];
+    // Ensure backendTemplates is an array
+    const backend = Array.isArray(backendTemplates) ? backendTemplates : [];
     return [...BUILT_IN_TEMPLATES, ...backend];
   }, [backendTemplates]);
 
