@@ -153,9 +153,9 @@ const BUILT_IN_TEMPLATES = [
     estimated_cost: 0.45,
     estimated_time: '3.2s',
     agents: [
-      { name: 'Salesforce Agent', agent_type: 'salesforce_agent' },
-      { name: 'Sales Intelligence', agent_type: 'sales_intelligence_agent' },
-      { name: 'Email Outreach', agent_type: 'email_outreach_agent' },
+      { name: 'Salesforce Agent', agent_type: 'sales_intelligence' },
+      { name: 'Sales Intelligence', agent_type: 'sales_intelligence' },
+      { name: 'Email Outreach', agent_type: 'email_outreach' },
     ],
   },
   {
@@ -166,9 +166,9 @@ const BUILT_IN_TEMPLATES = [
     estimated_cost: 0.32,
     estimated_time: '2.8s',
     agents: [
-      { name: 'Darwinbox HR Agent', agent_type: 'darwinbox_hr_agent' },
-      { name: 'Email Agent', agent_type: 'email_outreach_agent' },
-      { name: 'Calendar Agent', agent_type: 'outlook_calendar_agent' },
+      { name: 'Darwinbox HR Agent', agent_type: 'darwinbox_hr' },
+      { name: 'Email Agent', agent_type: 'email_outreach' },
+      { name: 'Supervisor', agent_type: 'supervisor' },
     ],
   },
   {
@@ -179,9 +179,9 @@ const BUILT_IN_TEMPLATES = [
     estimated_cost: 0.28,
     estimated_time: '1.9s',
     agents: [
-      { name: 'Jira Agent', agent_type: 'jira_agent' },
-      { name: 'Knowledge Agent', agent_type: 'rag_knowledge_agent' },
-      { name: 'Slack Agent', agent_type: 'slack_agent' },
+      { name: 'Jira Agent', agent_type: 'jira' },
+      { name: 'Slack Agent', agent_type: 'slack' },
+      { name: 'Supervisor', agent_type: 'supervisor' },
     ],
   },
   {
@@ -192,8 +192,8 @@ const BUILT_IN_TEMPLATES = [
     estimated_cost: 0.52,
     estimated_time: '4.1s',
     agents: [
-      { name: 'RAG Agent', agent_type: 'rag_knowledge_agent' },
-      { name: 'Summarizer Agent', agent_type: 'ai_assistant_agent' },
+      { name: 'Sales Intelligence', agent_type: 'sales_intelligence' },
+      { name: 'Email Outreach', agent_type: 'email_outreach' },
     ],
   },
   {
@@ -204,9 +204,9 @@ const BUILT_IN_TEMPLATES = [
     estimated_cost: 0.39,
     estimated_time: '2.5s',
     agents: [
-      { name: 'Salesforce Agent', agent_type: 'salesforce_agent' },
-      { name: 'Sales Intelligence', agent_type: 'sales_intelligence_agent' },
-      { name: 'Supervisor', agent_type: 'supervisor_agent' },
+      { name: 'Sales Intelligence', agent_type: 'sales_intelligence' },
+      { name: 'Email Outreach', agent_type: 'email_outreach' },
+      { name: 'Supervisor', agent_type: 'supervisor' },
     ],
   },
   {
@@ -217,9 +217,9 @@ const BUILT_IN_TEMPLATES = [
     estimated_cost: 0.41,
     estimated_time: '2.9s',
     agents: [
-      { name: 'Darwinbox HR Agent', agent_type: 'darwinbox_hr_agent' },
-      { name: 'Email Agent', agent_type: 'email_outreach_agent' },
-      { name: 'Supervisor', agent_type: 'supervisor_agent' },
+      { name: 'Darwinbox HR Agent', agent_type: 'darwinbox_hr' },
+      { name: 'Email Agent', agent_type: 'email_outreach' },
+      { name: 'Supervisor', agent_type: 'supervisor' },
     ],
   },
 ];
@@ -289,6 +289,8 @@ const Templates = () => {
         agents: agents,
         edges: template.edges || [],
       };
+
+      console.log('Creating workflow with data:', JSON.stringify(workflowData, null, 2));
       return workflowsAPI.create(workflowData);
     },
     onSuccess: (data, template) => {
@@ -303,9 +305,24 @@ const Templates = () => {
       }, 1500);
     },
     onError: (error) => {
+      console.error('Template creation error:', error);
+      console.error('Error response:', error.response?.data);
+
+      let errorMessage = 'Failed to create workflow';
+      if (error.response?.data?.detail) {
+        if (Array.isArray(error.response.data.detail)) {
+          errorMessage = error.response.data.detail.map(e => e.msg).join(', ');
+        } else {
+          errorMessage = error.response.data.detail;
+        }
+      } else {
+        errorMessage = error.message;
+      }
+
       setSnackbar({
         open: true,
-        message: `Failed to create workflow: ${error.message}`,
+        message: `Failed to create workflow: ${errorMessage}`,
+        severity: 'error',
       });
     },
   });
