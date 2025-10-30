@@ -12,21 +12,71 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 
+// Helper function to get status styles
+const getStatusStyles = (status) => {
+  switch (status) {
+    case 'pending':
+      return {
+        borderColor: '#9CA3AF',
+        backgroundColor: '#F9FAFB',
+        badgeColor: '#6B7280',
+        badgeLabel: 'Pending',
+      };
+    case 'running':
+      return {
+        borderColor: '#3B82F6',
+        backgroundColor: '#EFF6FF',
+        badgeColor: '#3B82F6',
+        badgeLabel: 'Running',
+        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      };
+    case 'completed':
+      return {
+        borderColor: '#10B981',
+        backgroundColor: '#ECFDF5',
+        badgeColor: '#10B981',
+        badgeLabel: 'Completed',
+      };
+    case 'failed':
+      return {
+        borderColor: '#EF4444',
+        backgroundColor: '#FEF2F2',
+        badgeColor: '#EF4444',
+        badgeLabel: 'Failed',
+      };
+    default:
+      return null;
+  }
+};
+
 // Agent Node (Purple)
 export const AgentNode = ({ data, selected }) => {
+  const statusStyles = data.executionStatus ? getStatusStyles(data.executionStatus) : null;
+
   return (
     <Box
       sx={{
         padding: 2,
         borderRadius: 2,
         border: '2px solid',
-        borderColor: selected ? '#8B5CF6' : '#E9D5FF',
-        backgroundColor: '#FAF5FF',
+        borderColor: statusStyles ? statusStyles.borderColor : (selected ? '#8B5CF6' : '#E9D5FF'),
+        backgroundColor: statusStyles ? statusStyles.backgroundColor : '#FAF5FF',
         minWidth: 180,
         maxWidth: 220,
         boxShadow: selected ? '0 8px 24px rgba(139, 92, 246, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
         transition: 'all 0.3s',
         position: 'relative',
+        animation: statusStyles?.animation || 'none',
+        '@keyframes pulse': {
+          '0%, 100%': {
+            opacity: 1,
+            boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)',
+          },
+          '50%': {
+            opacity: 1,
+            boxShadow: '0 0 0 10px rgba(59, 130, 246, 0)',
+          },
+        },
         '&:hover': {
           boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)',
           transform: 'translateY(-2px)',
@@ -44,13 +94,32 @@ export const AgentNode = ({ data, selected }) => {
         }}
       />
 
+      {/* Status badge in top-right corner */}
+      {statusStyles && (
+        <Chip
+          label={statusStyles.badgeLabel}
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            height: 20,
+            fontSize: '0.6rem',
+            backgroundColor: 'white',
+            color: statusStyles.badgeColor,
+            border: `1px solid ${statusStyles.badgeColor}`,
+            fontWeight: 700,
+          }}
+        />
+      )}
+
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <Box
           sx={{
             width: 32,
             height: 32,
             borderRadius: 1.5,
-            backgroundColor: '#8B5CF6',
+            backgroundColor: statusStyles?.badgeColor || '#8B5CF6',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -99,19 +168,32 @@ export const AgentNode = ({ data, selected }) => {
 
 // Conditional Node (Yellow/Orange)
 export const ConditionalNode = ({ data, selected }) => {
+  const statusStyles = data.executionStatus ? getStatusStyles(data.executionStatus) : null;
+
   return (
     <Box
       sx={{
         padding: 2,
         borderRadius: 2,
         border: '2px solid',
-        borderColor: selected ? '#F59E0B' : '#FDE68A',
-        backgroundColor: '#FFFBEB',
+        borderColor: statusStyles ? statusStyles.borderColor : (selected ? '#F59E0B' : '#FDE68A'),
+        backgroundColor: statusStyles ? statusStyles.backgroundColor : '#FFFBEB',
         minWidth: 180,
         maxWidth: 220,
         boxShadow: selected ? '0 8px 24px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
         transition: 'all 0.3s',
         position: 'relative',
+        animation: statusStyles?.animation || 'none',
+        '@keyframes pulse': {
+          '0%, 100%': {
+            opacity: 1,
+            boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)',
+          },
+          '50%': {
+            opacity: 1,
+            boxShadow: '0 0 0 10px rgba(59, 130, 246, 0)',
+          },
+        },
       }}
     >
       <Handle
@@ -125,13 +207,32 @@ export const ConditionalNode = ({ data, selected }) => {
         }}
       />
 
+      {/* Status badge */}
+      {statusStyles && (
+        <Chip
+          label={statusStyles.badgeLabel}
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            height: 20,
+            fontSize: '0.6rem',
+            backgroundColor: 'white',
+            color: statusStyles.badgeColor,
+            border: `1px solid ${statusStyles.badgeColor}`,
+            fontWeight: 700,
+          }}
+        />
+      )}
+
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <Box
           sx={{
             width: 32,
             height: 32,
             borderRadius: 1.5,
-            backgroundColor: '#F59E0B',
+            backgroundColor: statusStyles?.badgeColor || '#F59E0B',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -295,19 +396,32 @@ export const RouterNode = ({ data, selected }) => {
 
 // API Call Node (Blue)
 export const APICallNode = ({ data, selected }) => {
+  const statusStyles = data.executionStatus ? getStatusStyles(data.executionStatus) : null;
+
   return (
     <Box
       sx={{
         padding: 2,
         borderRadius: 2,
         border: '2px solid',
-        borderColor: selected ? '#3B82F6' : '#BFDBFE',
-        backgroundColor: '#EFF6FF',
+        borderColor: statusStyles ? statusStyles.borderColor : (selected ? '#3B82F6' : '#BFDBFE'),
+        backgroundColor: statusStyles ? statusStyles.backgroundColor : '#EFF6FF',
         minWidth: 180,
         maxWidth: 220,
         boxShadow: selected ? '0 8px 24px rgba(59, 130, 246, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
         transition: 'all 0.3s',
         position: 'relative',
+        animation: statusStyles?.animation || 'none',
+        '@keyframes pulse': {
+          '0%, 100%': {
+            opacity: 1,
+            boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)',
+          },
+          '50%': {
+            opacity: 1,
+            boxShadow: '0 0 0 10px rgba(59, 130, 246, 0)',
+          },
+        },
       }}
     >
       <Handle
@@ -321,13 +435,32 @@ export const APICallNode = ({ data, selected }) => {
         }}
       />
 
+      {/* Status badge */}
+      {statusStyles && (
+        <Chip
+          label={statusStyles.badgeLabel}
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            height: 20,
+            fontSize: '0.6rem',
+            backgroundColor: 'white',
+            color: statusStyles.badgeColor,
+            border: `1px solid ${statusStyles.badgeColor}`,
+            fontWeight: 700,
+          }}
+        />
+      )}
+
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <Box
           sx={{
             width: 32,
             height: 32,
             borderRadius: 1.5,
-            backgroundColor: '#3B82F6',
+            backgroundColor: statusStyles?.badgeColor || '#3B82F6',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

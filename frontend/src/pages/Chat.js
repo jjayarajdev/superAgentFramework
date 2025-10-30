@@ -40,14 +40,17 @@ import {
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import { workflowsAPI } from '../api';
 
 const Chat = () => {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: 'assistant',
-      content: "👋 Hi! I'm your AI assistant powered by GPT-4.\n\nI can execute:\n• **Pre-defined workflows** - Optimized, tested workflows\n• **Dynamic orchestration** - Combine any agents on-the-fly\n\nChoose a quick action below or type your own query!",
+      content: "👋 Hi! I'm your AI assistant.\n\nI can help you:\n• **Execute workflows** - Run any saved workflow\n• **Track execution status** - Monitor workflow progress\n• **View results** - See execution outputs and logs\n\nClick on a workflow below or type your request!",
       timestamp: new Date(),
     },
   ]);
@@ -160,7 +163,39 @@ const Chat = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Mutation for sending messages
+  // Mutation for executing workflows
+  const executeWorkflowMutation = useMutation({
+    mutationFn: ({ workflowId, workflowName }) => {
+      return workflowsAPI.execute({ id: workflowId, input: {} });
+    },
+    onSuccess: (data, variables) => {
+      const executionId = data.execution_id || data.id;
+      const assistantMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: `✅ Successfully started execution of "${variables.workflowName}"!\n\nExecution ID: ${executionId}\n\nYou can monitor the progress in the Executions page.`,
+        workflow: variables.workflowName,
+        execution_id: executionId,
+        execution_status: 'RUNNING',
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    },
+    onError: (error, variables) => {
+      const errorMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: `❌ Failed to execute "${variables.workflowName}": ${error.response?.data?.detail || error.message}`,
+        isError: true,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+    },
+  });
+
+  // Mutation for sending messages (for general chat)
   const sendMessageMutation = useMutation({
     mutationFn: async (message) => {
       const response = await api.post('/api/v1/chat/message', {
@@ -239,7 +274,19 @@ const Chat = () => {
 
     setMessages((prev) => [...prev, userMessage]);
 
-    // Send to API
+    // If it's a workflow question, execute directly
+    if (question.type === 'workflow' && question.id) {
+      const workflow = workflows.find(w => w.id === question.id);
+      if (workflow) {
+        executeWorkflowMutation.mutate({
+          workflowId: workflow.id,
+          workflowName: workflow.name,
+        });
+        return;
+      }
+    }
+
+    // Otherwise send to chat API
     sendMessageMutation.mutate(text);
   };
 
@@ -349,14 +396,14 @@ const Chat = () => {
           ))}
 
           {/* Loading indicator */}
-          {sendMessageMutation.isPending && (
+          {(sendMessageMutation.isPending || executeWorkflowMutation.isPending) && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
               <Avatar sx={{ bgcolor: 'primary.main' }}>
                 <BotIcon />
               </Avatar>
               <CircularProgress size={20} />
               <Typography variant="body2" color="text.secondary">
-                Thinking...
+                {executeWorkflowMutation.isPending ? 'Executing workflow...' : 'Thinking...'}
               </Typography>
             </Box>
           )}
@@ -382,7 +429,7 @@ const Chat = () => {
             <IconButton
               color="primary"
               onClick={handleSend}
-              disabled={!input.trim() || sendMessageMutation.isPending}
+              disabled={!input.trim() || sendMessageMutation.isPending || executeWorkflowMutation.isPending}
               sx={{
                 bgcolor: 'primary.main',
                 color: 'white',
@@ -401,6 +448,7 @@ const Chat = () => {
 
 // Message Bubble Component
 const MessageBubble = ({ message }) => {
+  const navigate = useNavigate();
   const isUser = message.role === 'user';
   const isError = message.isError;
 
@@ -448,7 +496,7 @@ const MessageBubble = ({ message }) => {
               </Typography>
 
               {message.agents_used && message.agents_used.length > 0 && (
-                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
                   {message.agents_used.map((agent, index) => (
                     <Chip
                       key={index}
@@ -461,9 +509,29 @@ const MessageBubble = ({ message }) => {
               )}
 
               {message.execution_id && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                  Execution ID: {message.execution_id}
-                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Execution ID: {message.execution_id}
+                    </Typography>
+                    {message.execution_status && (
+                      <Chip
+                        label={message.execution_status}
+                        size="small"
+                        color={message.execution_status === 'COMPLETED' ? 'success' : 'info'}
+                        sx={{ height: 18, fontSize: '0.65rem' }}
+                      />
+                    )}
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => navigate('/executions')}
+                    sx={{ mt: 0.5 }}
+                  >
+                    View Execution Details
+                  </Button>
+                </Box>
               )}
             </Box>
           )}

@@ -35,6 +35,9 @@ import {
   Close as CloseIcon,
   Visibility,
   VisibilityOff,
+  GridView as GridViewIcon,
+  ViewList as ListViewIcon,
+  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import { agentsAPI } from '../api';
 
@@ -195,6 +198,8 @@ const AgentLibrary = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [sortBy, setSortBy] = useState('name'); // 'name', 'category', 'match'
   const [configureDialogOpen, setConfigureDialogOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [configFormData, setConfigFormData] = useState({});
@@ -237,11 +242,11 @@ const AgentLibrary = () => {
     return ['All Categories', ...cats];
   }, [agents]);
 
-  // Filter agents
+  // Filter and sort agents
   const filteredAgents = React.useMemo(() => {
     if (!agents) return [];
 
-    return agents.filter((agent) => {
+    let filtered = agents.filter((agent) => {
       const matchesSearch =
         !searchTerm ||
         agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -253,7 +258,25 @@ const AgentLibrary = () => {
 
       return matchesSearch && matchesCategory;
     });
-  }, [agents, searchTerm, categoryFilter]);
+
+    // Sort agents
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'category':
+          return (a.category || 'Integration').localeCompare(b.category || 'Integration');
+        case 'match':
+          const matchA = a.match_percentage || Math.floor(Math.random() * 30) + 70;
+          const matchB = b.match_percentage || Math.floor(Math.random() * 30) + 70;
+          return matchB - matchA; // Descending order
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [agents, searchTerm, categoryFilter, sortBy]);
 
   // Handle configure button click - navigate to Lyzr builder
   const handleConfigure = (agent) => {
@@ -505,35 +528,95 @@ const AgentLibrary = () => {
         </Typography>
       </Box>
 
-      {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-        <TextField
-          fullWidth
-          placeholder="Search agents..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Category</InputLabel>
-          <Select
-            value={categoryFilter}
-            label="Category"
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            {categories.map((cat) => (
-              <MenuItem key={cat} value={cat}>
-                {cat}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      {/* Filters and Controls */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            placeholder="Search agents..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={categoryFilter}
+              label="Category"
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              {categories.map((cat) => (
+                <MenuItem key={cat} value={cat}>
+                  {cat}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        {/* View Controls */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FilterIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+            <Typography variant="body2" color="text.secondary">
+              {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''} found
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Sort by</InputLabel>
+              <Select
+                value={sortBy}
+                label="Sort by"
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <MenuItem value="name">Name</MenuItem>
+                <MenuItem value="category">Category</MenuItem>
+                <MenuItem value="match">Match %</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Box
+              sx={{
+                display: 'flex',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 1,
+                overflow: 'hidden',
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => setViewMode('grid')}
+                sx={{
+                  borderRadius: 0,
+                  bgcolor: viewMode === 'grid' ? 'primary.50' : 'transparent',
+                  color: viewMode === 'grid' ? 'primary.main' : 'text.secondary',
+                }}
+              >
+                <GridViewIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => setViewMode('list')}
+                sx={{
+                  borderRadius: 0,
+                  bgcolor: viewMode === 'list' ? 'primary.50' : 'transparent',
+                  color: viewMode === 'list' ? 'primary.main' : 'text.secondary',
+                }}
+              >
+                <ListViewIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
+        </Box>
       </Box>
 
       {/* Loading State */}
@@ -550,15 +633,140 @@ const AgentLibrary = () => {
         </Alert>
       )}
 
-      {/* Agents Grid */}
+      {/* Agents Display */}
       {filteredAgents && filteredAgents.length > 0 && (
-        <Grid container spacing={3}>
-          {filteredAgents.map((agent) => (
-            <Grid item xs={12} md={6} key={agent.agent_type}>
-              <AgentCard agent={agent} onConfigure={handleConfigure} />
-            </Grid>
-          ))}
-        </Grid>
+        viewMode === 'grid' ? (
+          <Grid container spacing={3}>
+            {filteredAgents.map((agent) => (
+              <Grid item xs={12} md={6} key={agent.agent_type}>
+                <AgentCard agent={agent} onConfigure={handleConfigure} />
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {filteredAgents.map((agent) => {
+              const category = agent.category || 'Integration';
+              const color = categoryColors[category] || 'primary';
+              const matchPercentage = agent.match_percentage || Math.floor(Math.random() * 30) + 70;
+
+              return (
+                <Card key={agent.agent_type}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+                      {/* Left: Main Info */}
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Typography variant="h6" fontWeight={600}>
+                            {agent.name}
+                          </Typography>
+                          <Chip label={category} size="small" color={color} variant="outlined" />
+                          <Chip
+                            icon={<TrendingIcon />}
+                            label={`${matchPercentage}% match`}
+                            size="small"
+                            sx={{
+                              bgcolor: 'success.50',
+                              color: 'success.main',
+                              fontWeight: 600,
+                            }}
+                          />
+                        </Box>
+
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          {agent.description}
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', gap: 3, mb: 2 }}>
+                          <Box>
+                            <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
+                              Connectors:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {agent.connectors?.slice(0, 4).map((connector, idx) => (
+                                <Chip
+                                  key={idx}
+                                  label={connector}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ fontSize: '0.7rem' }}
+                                />
+                              ))}
+                              {agent.connectors?.length > 4 && (
+                                <Chip
+                                  label={`+${agent.connectors.length - 4}`}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ fontSize: '0.7rem' }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+
+                          <Box>
+                            <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
+                              Capabilities:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {agent.capabilities?.slice(0, 4).map((capability, idx) => (
+                                <Chip
+                                  key={idx}
+                                  label={capability}
+                                  size="small"
+                                  color={color}
+                                  sx={{ fontSize: '0.7rem' }}
+                                />
+                              ))}
+                              {agent.capabilities?.length > 4 && (
+                                <Chip
+                                  label={`+${agent.capabilities.length - 4}`}
+                                  size="small"
+                                  color={color}
+                                  sx={{ fontSize: '0.7rem' }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      {/* Right: Stats & Action */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, minWidth: 200 }}>
+                        <Box sx={{ display: 'flex', gap: 3 }}>
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Est. Cost
+                            </Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              ${agent.estimated_cost || '0.015'}/run
+                            </Typography>
+                          </Box>
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Latency
+                            </Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {agent.avg_latency || '1.2'}s
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Button
+                          variant="outlined"
+                          startIcon={<SettingsIcon />}
+                          onClick={() => handleConfigure(agent)}
+                          size="small"
+                        >
+                          Configure
+                        </Button>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
+        )
       )}
 
       {/* Empty State */}

@@ -19,7 +19,23 @@ import {
   AttachMoney,
   Speed,
   ChevronRight,
+  TrendingUp,
 } from '@mui/icons-material';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import { workflowsAPI, executionsAPI } from '../api';
 
 const StatCard = ({ title, value, subtitle, icon: Icon, color }) => (
@@ -122,6 +138,63 @@ const Dashboard = () => {
     };
   }, [workflows, executions]);
 
+  // Calculate chart data
+  const chartData = React.useMemo(() => {
+    const executionList = executions || [];
+
+    // Execution trends over the last 7 days
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return date.toISOString().split('T')[0];
+    });
+
+    const executionTrends = last7Days.map((date) => {
+      const dayExecutions = executionList.filter((e) =>
+        e.created_at && e.created_at.startsWith(date)
+      );
+      return {
+        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        executions: dayExecutions.length,
+        successful: dayExecutions.filter((e) => e.status === 'COMPLETED').length,
+        failed: dayExecutions.filter((e) => e.status === 'FAILED').length,
+      };
+    });
+
+    // Status distribution
+    const statusCounts = {
+      COMPLETED: executionList.filter((e) => e.status === 'COMPLETED').length,
+      RUNNING: executionList.filter((e) => e.status === 'RUNNING').length,
+      FAILED: executionList.filter((e) => e.status === 'FAILED').length,
+      PENDING: executionList.filter((e) => e.status === 'PENDING').length,
+    };
+
+    const statusDistribution = [
+      { name: 'Completed', value: statusCounts.COMPLETED, color: '#10B981' },
+      { name: 'Running', value: statusCounts.RUNNING, color: '#3B82F6' },
+      { name: 'Failed', value: statusCounts.FAILED, color: '#EF4444' },
+      { name: 'Pending', value: statusCounts.PENDING, color: '#F59E0B' },
+    ].filter((item) => item.value > 0);
+
+    // Cost over time (last 7 days)
+    const costOverTime = last7Days.map((date) => {
+      const dayExecutions = executionList.filter((e) =>
+        e.created_at && e.created_at.startsWith(date)
+      );
+      const cost = dayExecutions.reduce((sum, e) => sum + (e.metrics?.total_cost || 0), 0);
+      return {
+        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        cost: parseFloat(cost.toFixed(2)),
+      };
+    });
+
+    return {
+      executionTrends,
+      statusDistribution,
+      costOverTime,
+    };
+  }, [executions]);
+
   const isLoading = workflowsLoading || executionsLoading;
 
   return (
@@ -223,6 +296,122 @@ const Dashboard = () => {
             />
           </Grid>
         </Grid>
+      )}
+
+      {/* Analytics Charts */}
+      {!isLoading && executions && executions.length > 0 && (
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h4" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+            Analytics
+          </Typography>
+          <Grid container spacing={3}>
+            {/* Execution Trends */}
+            <Grid item xs={12} lg={8}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                    <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
+                    <Typography variant="h6" fontWeight={600}>
+                      Execution Trends (Last 7 Days)
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={chartData.executionTrends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="executions"
+                        stroke="#8B5CF6"
+                        strokeWidth={2}
+                        name="Total Executions"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="successful"
+                        stroke="#10B981"
+                        strokeWidth={2}
+                        name="Successful"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="failed"
+                        stroke="#EF4444"
+                        strokeWidth={2}
+                        name="Failed"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Status Distribution */}
+            <Grid item xs={12} lg={4}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+                    Status Distribution
+                  </Typography>
+                  {chartData.statusDistribution.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={chartData.statusDistribution}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {chartData.statusDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No execution data available
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Cost Over Time */}
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                    <AttachMoney sx={{ mr: 1, color: 'warning.main' }} />
+                    <Typography variant="h6" fontWeight={600}>
+                      Cost Over Time (Last 7 Days)
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={chartData.costOverTime}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="cost" fill="#F59E0B" name="Cost ($)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
       )}
 
       {/* Platform Features */}
