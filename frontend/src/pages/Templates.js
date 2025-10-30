@@ -265,12 +265,29 @@ const Templates = () => {
   // Mutation for creating workflow from template
   const createFromTemplateMutation = useMutation({
     mutationFn: async (template) => {
+      // Convert template agents to proper AgentNode format
+      const agents = (template.agents || []).map((agent, index) => ({
+        id: `agent_${index + 1}`,
+        type: agent.agent_type || 'ai_assistant_agent',
+        name: agent.name || `Agent ${index + 1}`,
+        description: agent.description || '',
+        config: {
+          connector: agent.connector || null,
+          object_type: agent.object_type || null,
+          filters: agent.filters || {},
+          use_rag: agent.use_rag || false,
+          email_template: agent.email_template || null,
+          params: agent.params || {},
+        },
+        position: agent.position || { x: 100 + (index * 250), y: 100 },
+      }));
+
       // Convert template to workflow format
       const workflowData = {
         name: template.name,
         description: template.description,
-        agents: template.agents || [],
-        status: 'Active',
+        agents: agents,
+        edges: template.edges || [],
       };
       return workflowsAPI.create(workflowData);
     },
